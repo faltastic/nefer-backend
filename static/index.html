@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NextVibe Profile Generator</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; color: #333; line-height: 1.6; }
+        .card { border: 1px solid #e1e4e8; border-radius: 12px; padding: 24px; margin-top: 24px; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .images { display: flex; gap: 12px; margin-top: 20px; overflow-x: auto; padding-bottom: 8px; }
+        .images img { height: 200px; width: auto; object-fit: cover; border-radius: 8px; flex-shrink: 0; }
+        .tags { margin-top: 20px; display: flex; flex-wrap: wrap; gap: 8px; }
+        .tag { background: #f1f3f5; color: #495057; padding: 6px 12px; border-radius: 16px; font-size: 0.85em; font-weight: 500; }
+        .form-group { margin-bottom: 16px; }
+        input[type="url"], input[type="text"] { width: 100%; padding: 10px; border: 1px solid #ced4da; border-radius: 6px; box-sizing: border-box; }
+        button { padding: 10px 20px; background: #228be6; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 1em; }
+        button:hover { background: #1c7ed6; }
+        button:disabled { background: #adb5bd; cursor: not-allowed; }
+        h1 { margin-bottom: 24px; color: #212529; }
+        .type-badge { display: inline-block; background: #e7f5ff; color: #1971c2; padding: 4px 8px; border-radius: 4px; font-size: 0.85em; font-weight: 600; margin-bottom: 8px; }
+        .insta-link { display: inline-block; margin-top: 16px; color: #e64980; text-decoration: none; font-weight: 600; }
+        .insta-link:hover { text-decoration: underline; }
+        
+        /* Debug Styles */
+        #debugConsole { background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 8px; font-family: 'Courier New', Courier, monospace; font-size: 0.85em; margin-top: 24px; max-height: 300px; overflow-y: auto; display: none; }
+        .log-entry { margin-bottom: 4px; }
+        .log-time { color: #569cd6; margin-right: 8px; }
+        .log-info { color: #b5cea8; }
+        .log-step { color: #ce9178; font-weight: bold; }
+        
+        /* Collapsible Raw Data styles */
+        #rawDataContainer { margin-top: 15px; display: none; }
+        .collapsible { background: #495057; color: white; cursor: pointer; padding: 10px; width: 100%; border: none; text-align: left; outline: none; font-size: 1em; border-radius: 4px; }
+        .collapsible:hover { background: #343a40; }
+        .collapsible-content { padding: 0; max-height: 0; overflow: hidden; transition: max-height 0.2s ease-out; background-color: #f1f3f5; border-radius: 0 0 4px 4px; }
+        .collapsible-content pre { white-space: pre-wrap; word-wrap: break-word; padding: 15px; margin: 0; font-size: 0.8em; }
+    </style>
+</head>
+<body>
+    <h1>Profile Generator</h1>
+    <form id="genForm">
+        <div class="form-group">
+            <label for="url"><strong>Portfolio or Profile URL:</strong></label>
+            <input type="url" id="url" required placeholder="https://www.yourportfolio.com">
+        </div>
+        <div class="form-group">
+            <label for="userType"><strong>User Type (Optional):</strong></label>
+            <input type="text" id="userType" placeholder="e.g., Photographer, Model, Brand">
+        </div>
+        <button type="submit" id="submitBtn">Generate Profile</button>
+    </form>
+    
+    <div id="debugConsole"></div>
+    <div id="rawDataContainer">
+        <button type="button" class="collapsible">Toggle Raw Extracted Data</button>
+        <div class="collapsible-content">
+            <pre id="rawDataJson"></pre>
+        </div>
+    </div>
+    <div id="error" style="color: #fa5252; margin-top: 24px; font-weight: 500;"></div>
+
+    <div class="card" id="profileCard">
+        <span class="type-badge" id="cardType"></span>
+        <h2 id="cardName" style="margin-top: 0; margin-bottom: 8px;"></h2>
+        <p id="cardShort" style="font-size: 1.1em; font-weight: 500; margin-bottom: 8px;"></p>
+        <p id="cardLong" style="color: #495057; font-size: 0.95em;"></p>
+        <!-- <a id="cardInsta" class="insta-link" href="#" target="_blank" style="display: none;">📷 Instagram</a> -->
+        <div class="tags" id="cardTags"></div>
+        <div class="images" id="cardImages"></div>
+    </div>
+
+    <script>
+        const consoleEl = document.getElementById('debugConsole');
+        
+        function log(message, type = 'info') {
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            const time = new Date().toLocaleTimeString();
+            entry.innerHTML = `<span class="log-time">[${time}]</span><span class="log-${type}">${message}</span>`;
+            consoleEl.appendChild(entry);
+            consoleEl.scrollTop = consoleEl.scrollHeight;
+            consoleEl.style.display = 'block';
+        }
+
+        document.getElementById('genForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('submitBtn');
+            const url = document.getElementById('url').value;
+            const userType = document.getElementById('userType').value;
+            
+            btn.disabled = true;
+            consoleEl.innerHTML = '';
+            document.getElementById('error').textContent = '';
+            document.getElementById('profileCard').style.display = 'none';
+            document.getElementById('rawDataContainer').style.display = 'none';
+            
+            log('Starting profile generation process...', 'step');
+            log(`Target URL: ${url}`);
+            if (userType) log(`User Type Context: ${userType}`);
+            
+            try {
+                log('Step 1: Dispatching request to backend...', 'step');
+                const startTime = performance.now();
+                
+                const res = await fetch('/api/v1/profiles/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url, user_type: userType || null })
+                });
+                
+                if (!res.ok) {
+                    const errorData = await res.json();
+                    throw new Error(errorData.detail || 'Failed to generate profile');
+                }
+                
+                const data = await res.json();
+                const endTime = performance.now();
+                const duration = ((endTime - startTime) / 1000).toFixed(2);
+                
+                log(`Backend completed in ${duration}s`, 'step');
+                
+                if (data.debug_data) {
+                    log('--- Extractor Results ---');
+                    log(`Extractor Used: ${data.debug_data.extractor_used || 'N/A'}`);
+                    log(`Text extracted: ${data.debug_data.extracted_text_length} chars`);
+                    log(`Images found: ${data.debug_data.extracted_images_count}`);
+                    log(`Links found: ${data.debug_data.extracted_links_count}`);
+                    log(`About page merged: ${data.debug_data.about_page_found ? 'Yes' : 'No'}`);
+                    if (data.debug_data.metadata) {
+                        log('--- Extracted Metadata ---');
+                        log(`Title: ${data.debug_data.metadata.title || 'N/A'}`);
+                        log(`Author: ${data.debug_data.metadata.author || 'N/A'}`);
+                        log(`Sitename: ${data.debug_data.metadata.sitename || 'N/A'}`);
+                        log(`Description: ${data.debug_data.metadata.description || 'N/A'}`);
+                    }
+                    if (data.debug_data.raw_extracted_data) {
+                        document.getElementById('rawDataJson').textContent = JSON.stringify(data.debug_data.raw_extracted_data, null, 2);
+                        document.getElementById('rawDataContainer').style.display = 'block';
+                    }
+                }
+                
+                log('Step 2: Rendering Profile Card...', 'step');
+                
+                document.getElementById('cardName').textContent = data.name;
+                document.getElementById('cardType').textContent = data.profile_type;
+                document.getElementById('cardShort').textContent = data.short_description;
+                document.getElementById('cardLong').textContent = data.long_description;
+                
+                /*
+                const instaEl = document.getElementById('cardInsta');
+                if (data.instagram_link) {
+                    instaEl.href = data.instagram_link;
+                    instaEl.style.display = 'inline-block';
+                    log(`Instagram link identified: ${data.instagram_link}`);
+                } else {
+                    instaEl.style.display = 'none';
+                }
+                */
+               
+                const tagsContainer = document.getElementById('cardTags');
+                tagsContainer.innerHTML = '';
+                (data.keywords || []).forEach(tag => {
+                    const span = document.createElement('span');
+                    span.className = 'tag';
+                    span.textContent = tag;
+                    tagsContainer.appendChild(span);
+                });
+                log(`AI Keywords extracted: ${(data.keywords || []).join(', ')}`);
+                
+                const imgsContainer = document.getElementById('cardImages');
+                imgsContainer.innerHTML = '';
+                (data.image_urls || []).forEach(imgUrl => {
+                    const img = document.createElement('img');
+                    img.src = imgUrl;
+                    imgsContainer.appendChild(img);
+                });
+                log(`Images selected for display: ${data.image_urls.length}`);
+                
+                document.getElementById('profileCard').style.display = 'block';
+                log('Process complete! Profile card visible below.', 'step');
+                
+            } catch (err) {
+                log(`ERROR: ${err.message}`, 'step');
+                document.getElementById('error').textContent = err.message;
+            } finally {
+                btn.disabled = false;
+            }
+        });
+        
+        document.querySelector('.collapsible').addEventListener('click', function() {
+            this.classList.toggle('active');
+            var content = this.nextElementSibling;
+            if (content.style.maxHeight){
+                content.style.maxHeight = null;
+            } else {
+                content.style.maxHeight = content.scrollHeight + "px";
+            } 
+        });
+    </script>
+</body>
+</html>

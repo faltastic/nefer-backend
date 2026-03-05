@@ -1,6 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from src.core.config import settings
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+import os
+
+from src.config import settings
+from src.api.router import api_router
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -17,9 +22,12 @@ if settings.BACKEND_CORS_ORIGINS:
         allow_headers=["*"],
     )
 
+app.include_router(api_router, prefix=settings.API_V1_STR)
+
+# Serve the static HTML file for the UI test
 @app.get("/")
 def read_root():
-    return {"message": "Welcome to NextVibe Backend API"}
+    return FileResponse("static/index.html")
 
 @app.get("/health")
 def health_check():
