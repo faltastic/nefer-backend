@@ -40,7 +40,7 @@ This plan outlines the staged implementation of the NextVibe MVP as defined in `
     *   Implement `src/services/matching.py` to calculate overlap in keywords between photographers and models.
     *   Ensure matches prioritize complementary roles (Photographer + Model).
 *   [ ] **3.2 Email Service (Resend):**
-    *   Implement `src/services/email_service.py` to send HTML emails via Resend.
+    *   Implement `src/services/email_service.py` to send HTML emails via Resend. (examples https://github.com/resend/resend-examples/blob/main/python-resend-examples/examples/basic_send.py and https://github.com/resend/resend-examples/blob/main/python-resend-examples/examples/scheduled_send.py and https://github.com/resend/resend-examples/blob/main/python-resend-examples/examples/with_template.py and  https://github.com/resend/resend-examples/blob/main/python-resend-examples/examples/fastapi_app.py)
     *   Design a simple Jinja2 template for the "Suggested Collab" email.
 *   [ ] **3.3 Scheduling (Cron):**
     *   Create an internal admin endpoint `POST /api/v1/internal/trigger-matching`.

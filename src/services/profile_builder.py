@@ -17,8 +17,8 @@ async def build_profile_from_url(url: str, user_type: str = None) -> dict:
     loop = asyncio.get_event_loop()
     extracted_data = await loop.run_in_executor(None, extract_url, url)
     
-    print(f"\n--- Extracted Data ---")
-    print(extracted_data)
+    # print(f"\n--- Extracted Data ---")
+    # print(extracted_data)
 
     if not extracted_data.get("text") and not extracted_data.get("images") and not is_instagram:
         raise ValueError("Could not extract any content from the provided URL.")
