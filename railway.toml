@@ -2,4 +2,4 @@
 buildCommand = "uv sync"
 
 [deploy]
-startCommand = "gunicorn --workers 2 --worker-class uvicorn.workers.UvicornWorker --preload-app --max-requests 1000 --max-requests-jitter 100 --bind 0.0.0.0:8080 main:app"
+startCommand = "gunicorn --version && gunicorn --workers 2 --worker-class uvicorn.workers.UvicornWorker --preload --max-requests 1000 --max-requests-jitter 100 --bind 0.0.0.0:8080 main:app"
